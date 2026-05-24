@@ -1,0 +1,189 @@
+version: "3.8"
+
+services:
+  # ============================================================
+  # Shared MySQL Database
+  # ============================================================
+  mysql:
+    image: mysql:8.0
+    container_name: fitlife-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - fitlife-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ============================================================
+  # Auth Service (Port 8001)
+  # ============================================================
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: fitlife-auth-service
+    restart: unless-stopped
+    ports:
+      - "8001:80"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: db_auth
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - fitlife-network
+
+  # ============================================================
+  # API Gateway (Port 8000)
+  # ============================================================
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: fitlife-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: db_api_gateway
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      AUTH_SERVICE_URL: http://auth-service
+      CRM_SERVICE_URL: http://crm-service
+      MEMBERSHIP_SERVICE_URL: http://membership-service
+      HR_SERVICE_URL: http://hr-service
+      REPORTING_SERVICE_URL: http://reporting-service
+    depends_on:
+      mysql:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - fitlife-network
+
+  # ============================================================
+  # CRM Service (Port 8002)
+  # ============================================================
+  crm-service:
+    build:
+      context: ./crm-service
+      dockerfile: Dockerfile
+    container_name: fitlife-crm-service
+    restart: unless-stopped
+    ports:
+      - "8002:80"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: db_crm
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      AUTH_SERVICE_URL: http://auth-service
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - fitlife-network
+
+  # ============================================================
+  # Membership Service (Port 8003)
+  # ============================================================
+  membership-service:
+    build:
+      context: ./membership-service
+      dockerfile: Dockerfile
+    container_name: fitlife-membership-service
+    restart: unless-stopped
+    ports:
+      - "8003:80"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: db_membership
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      AUTH_SERVICE_URL: http://auth-service
+      CRM_SERVICE_URL: http://crm-service
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - fitlife-network
+
+  # ============================================================
+  # HR Service (Port 8004)
+  # ============================================================
+  hr-service:
+    build:
+      context: ./hr-service
+      dockerfile: Dockerfile
+    container_name: fitlife-hr-service
+    restart: unless-stopped
+    ports:
+      - "8004:80"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: db_hr
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      AUTH_SERVICE_URL: http://auth-service
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - fitlife-network
+
+  # ============================================================
+  # Reporting Service (Port 8005)
+  # ============================================================
+  reporting-service:
+    build:
+      context: ./reporting-service
+      dockerfile: Dockerfile
+    container_name: fitlife-reporting-service
+    restart: unless-stopped
+    ports:
+      - "8005:80"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: db_reporting
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      AUTH_SERVICE_URL: http://auth-service
+      CRM_SERVICE_URL: http://crm-service
+      MEMBERSHIP_SERVICE_URL: http://membership-service
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - fitlife-network
+
+# ============================================================
+# Volumes & Networks
+# ============================================================
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  fitlife-network:
+    driver: bridge

@@ -1,0 +1,12 @@
+vendor/
+node_modules/
+.env.example
+.git
+.gitignore
+.gitattributes
+docker-compose.yml
+*.md
+tests/
+phpunit.xml
+.editorconfig
+.npmrc
