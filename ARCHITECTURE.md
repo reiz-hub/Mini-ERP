@@ -19,18 +19,19 @@ graph TD
         HR["HR Service (Port 8004)"]
         Reporting["Reporting Service (Port 8005)"]
         MySQL["MySQL Shared Database (Port 3306)"]
+        RabbitMQ["RabbitMQ Message Broker (Port 5672)"]
+        Redis["Redis Cache (Port 6379)"]
     end
 
-    Gateway -->|1. Authenticate / Verify JWT| Auth
+    Gateway -->|1. Authenticate| Auth
     Gateway -->|2. Manage Members| CRM
     Gateway -->|3. Manage Plans & Subscriptions| Membership
     Gateway -->|4. Manage HR & Assignment| HR
     Gateway -->|5. Aggregate Dashboard Reports| Reporting
     
-    %% Inter-service communication
-    Membership -->|Update Status to Active| CRM
-    Reporting -->|Fetch Active Count| CRM
-    Reporting -->|Fetch Revenue / Renewals| Membership
+    %% Inter-service communication (Event-Driven)
+    Membership -->|Publish MembershipActivated| RabbitMQ
+    RabbitMQ -->|Consume MembershipActivated| CRM
     
     %% Database connections
     Auth -->|Read/Write| MySQL
@@ -46,6 +47,8 @@ graph TD
     style HR fill:#475569,stroke:#1e293b,color:#fff
     style Reporting fill:#475569,stroke:#1e293b,color:#fff
     style MySQL fill:#10b981,stroke:#047857,color:#fff
+    style RabbitMQ fill:#f97316,stroke:#ea580c,color:#fff
+    style Redis fill:#dc2626,stroke:#b91c1c,color:#fff
 ```
 
 ### Why Microservices?
@@ -67,6 +70,8 @@ Unlike a traditional monolithic application, the FitLife ERP breaks down busines
 | **HR Service** | `8004` | `80` | `http://hr-service` | Manages active trainers, desk managers, employee logs, and member-to-personal-trainer assignments. |
 | **Reporting Service** | `8005` | `80` | `http://reporting-service` | Gathers raw metrics from internal services (CRM and Membership) and performs statistical aggregation for dashboard visualization. |
 | **MySQL Database** | `3307` | `3306` | `mysql` | Persists structural relational data across individual schemas for all microservices. |
+| **RabbitMQ** | `5672/15672` | `5672` | `rabbitmq` | Message broker handling asynchronous event-driven communication (e.g., Membership updates CRM). |
+| **Redis** | `6379` | `6379` | `redis` | In-memory datastore used for caching and queueing. |
 
 ---
 
@@ -99,9 +104,9 @@ sequenceDiagram
 4. **Session Capture**: The API Gateway intercepts this token and places it in the browser's secure server-side PHP session.
 5. **Dashboard Entrance**: The Gateway issues a `302 Redirect` to `/`, allowing the browser to render the main administrative dashboard.
 
-### Flow B: Inter-Service Query & Authorization Verification
+### Flow B: Stateless JWT Authorization (RS256)
 
-All actions on protected dashboard pages verify credentials using JWTs before pulling information from internal microservices:
+Instead of pinging the Auth Service for every single request, consumer services now verify JWTs locally using a mounted RSA public key:
 
 ```mermaid
 sequenceDiagram
@@ -109,24 +114,49 @@ sequenceDiagram
     actor Browser as User's Browser
     participant Gateway as API Gateway (Port 8000)
     participant CRM as CRM Service (Port 8002)
-    participant Auth as Auth Service (Port 8001)
 
     Browser->>Gateway: GET /members
     Note over Gateway: Extract JWT token from Session
     Gateway->>CRM: GET /api/v1/members (Header: Authorization Bearer JWT)
-    Note over CRM: VerifyToken Middleware intercepts
-    CRM->>Auth: GET /api/v1/auth/me (Header: Authorization Bearer JWT)
-    Auth-->>CRM: HTTP 200 { user: { id: 1, name: "Admin" } }
+    Note over CRM: VerifyJwtLocally Middleware intercepts
+    Note over CRM: Verify RSA Signature using public.pem
+    Note over CRM: Extract embedded user claims (name, role)
     Note over CRM: Token is authentic! Fetch records from 'db_crm'
     CRM-->>Gateway: HTTP 200 [ { member1 }, { member2 } ]
     Gateway-->>Browser: Render 'members' Blade View with records
 ```
 
-1. **Request Interception**: A request is received at the Gateway for `/members`. The `RedirectIfNoJwtSession` middleware verifies that a `jwt_token` exists in the PHP session.
-2. **Back-end Delegation**: The Gateway requests the member list from the CRM Service (`GET http://crm-service/api/v1/members`), forwarding the JWT token in the `Authorization: Bearer <token>` HTTP header.
-3. **Microservice Security Guard**: The CRM Service intercepts the incoming request using its `VerifyJwtFromAuthService` middleware.
-4. **Token Verification**: Since the CRM microservice does not keep user databases, it verifies the token's validity by sending it back to the **Auth Service** via `GET http://auth-service/api/v1/auth/me`.
-5. **Response Assemblage**: Once verified, the Auth Service sends back the authenticated user structure. The CRM Service fulfills the query, returning the list of active gym members to the Gateway, which renders the blade template to the browser.
+1. **Request Interception**: A request is received at the Gateway for `/members`. The Gateway forwards the JWT token.
+2. **Back-end Delegation**: The Gateway requests the member list from the CRM Service (`GET http://crm-service/api/v1/members`).
+3. **Local Verification**: The CRM Service intercepts the incoming request using its `VerifyJwtLocally` middleware. It uses the `public.pem` RSA key (mounted via Docker volume) to mathematically verify the token signature.
+4. **Claim Extraction**: It extracts the user's details (ID, name, role) directly from the token payload, eliminating the need for a network round-trip to the Auth Service.
+5. **Response Assemblage**: The CRM Service fulfills the query, returning the list to the Gateway.
+
+### Flow C: Event-Driven Inter-Service Communication
+
+Instead of synchronous HTTP calls that can drop or block, state changes are handled asynchronously via RabbitMQ:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Gateway as API Gateway
+    participant Membership as Membership Service
+    participant RabbitMQ as RabbitMQ Broker
+    participant CRM as CRM Queue Worker
+
+    Gateway->>Membership: POST /api/v1/memberships/enroll
+    Note over Membership: Save Membership to DB
+    Membership->>RabbitMQ: Publish 'MembershipActivated' Event
+    Membership-->>Gateway: HTTP 201 Created (Async Sync Pending)
+    RabbitMQ-->>CRM: Deliver 'MembershipActivated' Event
+    Note over CRM: HandleMembershipActivated Job
+    Note over CRM: Update Member Status = 'active'
+```
+
+1. **Enrollment**: The Membership service successfully enrolls a member in a plan.
+2. **Publishing**: Instead of calling the CRM service via HTTP, it publishes a `MembershipActivated` event to the RabbitMQ exchange.
+3. **Immediate Response**: It immediately returns a success response to the user.
+4. **Consumption**: A background queue worker running in the CRM container picks up the event from RabbitMQ and updates the member's status to `active` in the CRM database.
 
 ---
 
@@ -164,7 +194,13 @@ Navigate to the root directory where the `docker-compose.yml` file is located:
 cd c:/Users/rizza/fitlife-erp
 ```
 
-### Step 2: Build and Run Containerized Services
+### Step 2: Generate RSA Keys (One-Time Setup)
+Run the script to generate the RS256 key pair used for JWT token signing and verification:
+```bash
+bash docker/jwt-keys/generate-keys.sh
+```
+
+### Step 3: Build and Run Containerized Services
 Launch the entire infrastructure stack in detached mode using Docker Compose:
 ```bash
 docker compose up -d --build
@@ -172,10 +208,10 @@ docker compose up -d --build
 *The `--build` flag ensures that any changes to source code or environment variables are fresh and re-compiled into the container images.*
 
 During the startup phase, the **entrypoint scripts** inside the containers automatically:
-1. Block and wait until the MySQL database is healthy.
+1. Block and wait until the MySQL, RabbitMQ, and Redis servers are healthy.
 2. Initialize separate database schemas (`db_auth`, `db_crm`, `db_membership`, `db_hr`, `db_reporting`).
 3. Run migrations (`php artisan migrate --force`).
-4. Seed mock development records (`php artisan db:seed`).
+4. Seed mock development records idempotently.
 
 ### Step 3: Access the Portal
 Open your web browser and go to:

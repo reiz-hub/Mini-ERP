@@ -77,6 +77,28 @@ return [
             'driver' => 'deferred',
         ],
 
+        'rabbitmq' => [
+            'driver'     => 'rabbitmq',
+            'host'       => env('RABBITMQ_HOST', 'rabbitmq'),
+            'port'       => env('RABBITMQ_PORT', 5672),
+            'user'       => env('RABBITMQ_USER', 'fitlife'),
+            'password'   => env('RABBITMQ_PASSWORD', 'fitlife_secret'),
+            'vhost'      => env('RABBITMQ_VHOST', '/'),
+            'queue'      => env('RABBITMQ_QUEUE', 'default'),
+            'options'    => [
+                'queue' => [
+                    'exchange'      => 'fitlife.events',
+                    'exchange_type' => 'topic',
+                    'arguments'     => [
+                        'x-dead-letter-exchange'    => 'fitlife.dlx',
+                        'x-dead-letter-routing-key' => 'dead_letter',
+                        'x-message-ttl'             => 60000,
+                        'x-max-retries'             => 3,
+                    ],
+                ],
+            ],
+        ],
+
         'background' => [
             'driver' => 'background',
         ],

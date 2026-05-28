@@ -1,8 +1,27 @@
 version: "3.8"
 
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-common-env: &common-env
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_USERNAME: root
+  DB_PASSWORD: root
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: 5672
+  RABBITMQ_USER: fitlife
+  RABBITMQ_PASSWORD: fitlife_secret
+  JWT_PUBLIC_KEY_PATH: /var/www/keys/public.pem
+
 services:
   # ============================================================
-  # Shared MySQL Database
+  # Infrastructure
   # ============================================================
   mysql:
     image: mysql:8.0
@@ -24,6 +43,45 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    logging: *default-logging
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: fitlife-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: fitlife
+      RABBITMQ_DEFAULT_PASS: fitlife_secret
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - fitlife-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  redis:
+    image: redis:7-alpine
+    container_name: fitlife-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - fitlife-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
 
   # ============================================================
   # Auth Service (Port 8001)
@@ -37,16 +95,24 @@ services:
     ports:
       - "8001:80"
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
+      <<: *common-env
       DB_DATABASE: db_auth
-      DB_USERNAME: root
-      DB_PASSWORD: root
+      JWT_PRIVATE_KEY_PATH: /var/www/keys/private.pem
+    volumes:
+      - ./docker/jwt-keys:/var/www/keys:ro
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - fitlife-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/v1/auth/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    logging: *default-logging
 
   # ============================================================
   # API Gateway (Port 8000)
@@ -60,11 +126,8 @@ services:
     ports:
       - "8000:80"
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
+      <<: *common-env
       DB_DATABASE: db_api_gateway
-      DB_USERNAME: root
-      DB_PASSWORD: root
       AUTH_SERVICE_URL: http://auth-service
       CRM_SERVICE_URL: http://crm-service
       MEMBERSHIP_SERVICE_URL: http://membership-service
@@ -74,12 +137,13 @@ services:
       mysql:
         condition: service_healthy
       auth-service:
-        condition: service_started
+        condition: service_healthy
     networks:
       - fitlife-network
+    logging: *default-logging
 
   # ============================================================
-  # CRM Service (Port 8002)
+  # Consumer Services
   # ============================================================
   crm-service:
     build:
@@ -90,21 +154,20 @@ services:
     ports:
       - "8002:80"
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
+      <<: *common-env
       DB_DATABASE: db_crm
-      DB_USERNAME: root
-      DB_PASSWORD: root
-      AUTH_SERVICE_URL: http://auth-service
+    volumes:
+      - ./docker/jwt-keys:/var/www/keys:ro
+      - ./docker/supervisord-worker.conf:/etc/supervisor/conf.d/supervisord.conf:ro
     depends_on:
       mysql:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - fitlife-network
+    logging: *default-logging
 
-  # ============================================================
-  # Membership Service (Port 8003)
-  # ============================================================
   membership-service:
     build:
       context: ./membership-service
@@ -114,22 +177,19 @@ services:
     ports:
       - "8003:80"
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
+      <<: *common-env
       DB_DATABASE: db_membership
-      DB_USERNAME: root
-      DB_PASSWORD: root
-      AUTH_SERVICE_URL: http://auth-service
-      CRM_SERVICE_URL: http://crm-service
+    volumes:
+      - ./docker/jwt-keys:/var/www/keys:ro
     depends_on:
       mysql:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - fitlife-network
+    logging: *default-logging
 
-  # ============================================================
-  # HR Service (Port 8004)
-  # ============================================================
   hr-service:
     build:
       context: ./hr-service
@@ -139,21 +199,17 @@ services:
     ports:
       - "8004:80"
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
+      <<: *common-env
       DB_DATABASE: db_hr
-      DB_USERNAME: root
-      DB_PASSWORD: root
-      AUTH_SERVICE_URL: http://auth-service
+    volumes:
+      - ./docker/jwt-keys:/var/www/keys:ro
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - fitlife-network
+    logging: *default-logging
 
-  # ============================================================
-  # Reporting Service (Port 8005)
-  # ============================================================
   reporting-service:
     build:
       context: ./reporting-service
@@ -163,25 +219,29 @@ services:
     ports:
       - "8005:80"
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
+      <<: *common-env
       DB_DATABASE: db_reporting
-      DB_USERNAME: root
-      DB_PASSWORD: root
-      AUTH_SERVICE_URL: http://auth-service
-      CRM_SERVICE_URL: http://crm-service
-      MEMBERSHIP_SERVICE_URL: http://membership-service
+    volumes:
+      - ./docker/jwt-keys:/var/www/keys:ro
+      - ./docker/supervisord-worker.conf:/etc/supervisor/conf.d/supervisord.conf:ro
     depends_on:
       mysql:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - fitlife-network
+    logging: *default-logging
 
 # ============================================================
 # Volumes & Networks
 # ============================================================
 volumes:
   mysql_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  redis_data:
     driver: local
 
 networks:

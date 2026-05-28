@@ -57,6 +57,9 @@ class AuthController extends Controller
      * Authenticate user and return a JWT token.
      *
      * POST /api/v1/auth/login
+     *
+     * The JWT token embeds user claims (name, email, role) so downstream
+     * services can verify the token locally without calling /auth/me.
      */
     public function login(Request $request): JsonResponse
     {
@@ -75,7 +78,7 @@ class AuthController extends Controller
 
         $credentials = $request->only('email', 'password');
 
-        if (!$token = JWTAuth::attempt($credentials)) {
+        if (!JWTAuth::attempt($credentials)) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Invalid credentials',
@@ -83,6 +86,16 @@ class AuthController extends Controller
         }
 
         $user = JWTAuth::user();
+
+        // Embed user profile claims directly into the JWT payload
+        // This allows downstream services to extract user data without calling /auth/me
+        $customClaims = [
+            'name'  => $user->name,
+            'email' => $user->email,
+            'role'  => $user->role,
+        ];
+
+        $token = JWTAuth::claims($customClaims)->fromUser($user);
 
         return response()->json([
             'status'  => 'success',
@@ -120,6 +133,33 @@ class AuthController extends Controller
         return response()->json([
             'status' => 'success',
             'user'   => JWTAuth::user(),
+        ]);
+    }
+
+    /**
+     * Refresh the current JWT token.
+     *
+     * POST /api/v1/auth/refresh
+     */
+    public function refresh(): JsonResponse
+    {
+        $user = JWTAuth::user();
+
+        $customClaims = [
+            'name'  => $user->name,
+            'email' => $user->email,
+            'role'  => $user->role,
+        ];
+
+        $newToken = JWTAuth::claims($customClaims)->fromUser($user);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Token refreshed successfully',
+            'authorization' => [
+                'token' => $newToken,
+                'type'  => 'bearer',
+            ],
         ]);
     }
 }

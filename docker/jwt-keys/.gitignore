@@ -1,0 +1,6 @@
+# Never commit the RSA private key
+private.pem
+
+# The public key CAN be committed (it's safe to share)
+# but we exclude it too so developers generate their own pair
+public.pem

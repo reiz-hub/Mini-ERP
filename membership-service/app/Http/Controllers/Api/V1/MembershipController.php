@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Events\MembershipActivated;
+use App\Events\MembershipRenewed;
 use App\Http\Controllers\Controller;
 use App\Models\Membership;
 use App\Models\Plan;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 
 class MembershipController extends Controller
@@ -71,37 +72,24 @@ class MembershipController extends Controller
             'amount_paid' => $request->amount_paid,
         ]);
 
-        // Sync with CRM Service (http://localhost:8002/api/v1/members/{member_id})
-        $crmUpdated = false;
-        $crmMessage = '';
-        $authHeader = $request->header('Authorization');
-
-        try {
-            $crmResponse = Http::withHeaders([
-                'Authorization' => $authHeader,
-                'Accept'        => 'application/json',
-            ])->timeout(5)->put(env('CRM_SERVICE_URL', 'http://localhost:8002') . "/api/v1/members/{$request->member_id}", [
-                'status' => 'active',
-            ]);
-
-            if ($crmResponse->successful()) {
-                $crmUpdated = true;
-            } else {
-                $crmMessage = 'CRM Service returned status ' . $crmResponse->status() . ': ' . $crmResponse->body();
-            }
-        } catch (\Exception $e) {
-            $crmMessage = 'Could not contact CRM service: ' . $e->getMessage();
-        }
+        // Publish event to RabbitMQ for async CRM update
+        event(new MembershipActivated(
+            $membership->member_id,
+            $membership->plan_id,
+            $membership->start_date,
+            $membership->end_date,
+            $membership->amount_paid
+        ));
 
         $membership->load('plan');
 
         return response()->json([
             'status'   => 'success',
-            'message' => 'Member enrolled successfully',
+            'message'  => 'Member enrolled successfully',
             'data'     => $membership,
             'crm_sync' => [
-                'status'  => $crmUpdated ? 'success' : 'failed',
-                'message' => $crmMessage ?: 'Member status updated to active in CRM service',
+                'status'  => 'pending',
+                'message' => 'Event published to queue',
             ]
         ], 201);
     }
@@ -171,37 +159,24 @@ class MembershipController extends Controller
             'amount_paid' => $amountPaid,
         ]);
 
-        // Sync with CRM Service to ensure the member remains active
-        $crmUpdated = false;
-        $crmMessage = '';
-        $authHeader = $request->header('Authorization');
-
-        try {
-            $crmResponse = Http::withHeaders([
-                'Authorization' => $authHeader,
-                'Accept'        => 'application/json',
-            ])->timeout(5)->put(env('CRM_SERVICE_URL', 'http://localhost:8002') . "/api/v1/members/{$membership->member_id}", [
-                'status' => 'active',
-            ]);
-
-            if ($crmResponse->successful()) {
-                $crmUpdated = true;
-            } else {
-                $crmMessage = 'CRM Service returned status ' . $crmResponse->status();
-            }
-        } catch (\Exception $e) {
-            $crmMessage = 'Could not contact CRM service: ' . $e->getMessage();
-        }
+        // Publish event to RabbitMQ for async CRM update
+        event(new MembershipRenewed(
+            $membership->member_id,
+            $membership->id,
+            $membership->plan_id,
+            $membership->end_date,
+            $membership->amount_paid
+        ));
 
         $membership->load('plan');
 
         return response()->json([
             'status'   => 'success',
-            'message' => 'Membership renewed successfully',
+            'message'  => 'Membership renewed successfully',
             'data'     => $membership,
             'crm_sync' => [
-                'status'  => $crmUpdated ? 'success' : 'failed',
-                'message' => $crmMessage ?: 'Member status updated to active in CRM service',
+                'status'  => 'pending',
+                'message' => 'Event published to queue',
             ]
         ]);
     }
