@@ -84,7 +84,7 @@
         <div class="text-center mb-4">
             <div class="logo-icon"><i class="bi bi-lightning-charge-fill"></i></div>
             <h3 class="fw-bold mb-1">Welcome back</h3>
-            <p class="text-muted small">Sign in to your FitLife ERP account</p>
+            <p class="text-white small">Sign in to your FitLife ERP account</p>
         </div>
 
         @if(session('error'))
@@ -102,7 +102,7 @@
         <form action="{{ route('login') }}" method="POST">
             @csrf
             <div class="mb-3">
-                <label for="email" class="form-label small text-muted fw-bold text-uppercase">Email address</label>
+                <label for="email" class="form-label small text-white fw-bold text-uppercase">Email address</label>
                 <input type="email" name="email" id="email" class="form-control form-control-custom @error('email') is-invalid @enderror" placeholder="name@example.com" value="{{ old('email') }}" required>
                 @error('email')
                     <div class="invalid-feedback">{{ $message }}</div>
@@ -110,14 +110,14 @@
             </div>
 
             <div class="mb-4">
-                <label for="password" class="form-label small text-muted fw-bold text-uppercase">Password</label>
+                <label for="password" class="form-label small text-white fw-bold text-uppercase">Password</label>
                 <input type="password" name="password" id="password" class="form-control form-control-custom" placeholder="••••••••" required>
             </div>
 
             <button type="submit" class="btn btn-indigo w-100 mb-3">Sign In</button>
             
             <div class="text-center">
-                <span class="text-muted small">Default credentials: test@example.com / password</span>
+                <span class="text-white small">Default credentials: test@example.com / password</span>
             </div>
         </form>
     </div>
