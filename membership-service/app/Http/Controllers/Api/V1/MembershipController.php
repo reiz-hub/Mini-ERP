@@ -71,7 +71,7 @@ class MembershipController extends Controller
             'amount_paid' => $request->amount_paid,
         ]);
 
-        // Sync with CRM Service (http://localhost:8002/api/v1/members/{member_id})
+        // Sync with CRM Service (https://localhost:8002/api/v1/members/{member_id})
         $crmUpdated = false;
         $crmMessage = '';
         $authHeader = $request->header('Authorization');
@@ -80,7 +80,7 @@ class MembershipController extends Controller
             $crmResponse = Http::withHeaders([
                 'Authorization' => $authHeader,
                 'Accept'        => 'application/json',
-            ])->timeout(5)->put(env('CRM_SERVICE_URL', 'http://localhost:8002') . "/api/v1/members/{$request->member_id}", [
+            ])->timeout(5)->put(env('CRM_SERVICE_URL', 'https://localhost:8002') . "/api/v1/members/{$request->member_id}", [
                 'status' => 'active',
             ]);
 

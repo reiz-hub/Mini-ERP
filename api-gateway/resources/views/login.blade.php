@@ -72,26 +72,6 @@
             color: #6366f1;
             margin-bottom: 1rem;
         }
-
-        /* --- New CSS added for visibility --- */
-        
-        /* Make form labels, the subtitle text, and helper text fully white */
-        .login-card .text-muted {
-            color: #ffffff !important;
-        }
-
-        /* Make placeholder text inside inputs fully white */
-        .form-control-custom::placeholder {
-            color: rgba(255, 255, 255, 0.7) !important;
-        }
-
-        /* Make validation error text white for visibility against the dark card */
-        .login-card .invalid-feedback {
-            color: #ffffff !important;
-        }
-
-        /* --- End of new additions --- */
-
     </style>
 </head>
 <body>

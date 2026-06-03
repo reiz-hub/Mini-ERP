@@ -29,7 +29,7 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $authUrl = env('AUTH_SERVICE_URL', 'http://localhost:8001');
+        $authUrl = env('AUTH_SERVICE_URL', 'https://localhost:8001');
 
         try {
             $response = Http::withHeaders([
