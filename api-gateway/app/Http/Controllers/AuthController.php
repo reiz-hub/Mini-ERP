@@ -51,7 +51,7 @@ class AuthController extends Controller
                 return redirect()->route('dashboard')->with('success', 'Logged in successfully!');
             }
 
-            $errorMsg = $response->json('message') ?? 'Invalid credentials';
+            $errorMsg = "HTTP {$response->status()} - Body: " . $response->body();
             return back()->withErrors(['email' => $errorMsg])->withInput($request->only('email'));
 
         } catch (\Exception $e) {
