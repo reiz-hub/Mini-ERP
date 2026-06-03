@@ -72,6 +72,10 @@
             color: #6366f1;
             margin-bottom: 1rem;
         }
+
+        .invalid-feedback {
+            color: #ffffff !important;
+        }
     </style>
 </head>
 <body>
