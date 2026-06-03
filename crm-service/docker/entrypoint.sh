@@ -1,12 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "⏳ Waiting for PostgreSQL to be ready..."
-until pg_isready -h "$DB_HOST" -U "$DB_USERNAME" -q 2>/dev/null; do
-    echo "   PostgreSQL is not ready yet. Retrying in 3s..."
-    sleep 3
-done
-echo "✅ PostgreSQL is ready!"
+echo "☁️ Using Neon cloud database — skipping local readiness check."
 
 # Clear and cache config
 php artisan config:clear
