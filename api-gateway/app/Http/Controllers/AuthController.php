@@ -49,8 +49,8 @@ class AuthController extends Controller
                 Session::put('user', $user);
 
                 return redirect()->route('dashboard')->with('success', 'Logged in successfully!');
-            }
-
+            \Illuminate\Support\Facades\Log::error("Auth Service Login Failed: HTTP {$response->status()} - " . $response->body());
+            
             return back()->withErrors([
                 'email' => 'Invalid credentials. Please verify your email and password.'
             ])->withInput($request->only('email'));
