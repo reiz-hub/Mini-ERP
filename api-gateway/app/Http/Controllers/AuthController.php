@@ -51,8 +51,9 @@ class AuthController extends Controller
                 return redirect()->route('dashboard')->with('success', 'Logged in successfully!');
             }
 
-            $errorMsg = "HTTP {$response->status()} - Body: " . $response->body();
-            return back()->withErrors(['email' => $errorMsg])->withInput($request->only('email'));
+            return back()->withErrors([
+                'email' => 'Invalid credentials. Please verify your email and password.'
+            ])->withInput($request->only('email'));
 
         } catch (\Exception $e) {
             return back()->withErrors(['email' => 'Auth service unreachable: ' . $e->getMessage()])->withInput($request->only('email'));
