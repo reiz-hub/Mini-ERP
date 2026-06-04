@@ -29,20 +29,27 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $authUrl = env('AUTH_SERVICE_URL', 'https://localhost:8001');
+        $authUrl = env('AUTH_SERVICE_URL', 'https://fitlife-auth-service.onrender.com');
 
         try {
             $response = Http::withHeaders([
                 'Accept' => 'application/json',
-            ])->post("{$authUrl}/api/v1/auth/login", [
+            ])->withoutVerifying()->timeout(15)->post("{$authUrl}/api/v1/auth/login", [
                 'email'    => $request->email,
                 'password' => $request->password,
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
-                $token = $data['authorization']['token'];
-                $user = $data['user'];
+                $token = $data['authorization']['token'] ?? null;
+                $user = $data['user'] ?? null;
+
+                if (!$token) {
+                    \Illuminate\Support\Facades\Log::error('Auth Service returned success but no token: ' . $response->body());
+                    return redirect()->route('login')->withErrors([
+                        'email' => 'Authentication error. Please try again.'
+                    ])->withInput($request->only('email'));
+                }
 
                 // Save in session
                 Session::put('jwt_token', $token);
@@ -53,12 +60,15 @@ class AuthController extends Controller
 
             \Illuminate\Support\Facades\Log::error("Auth Service Login Failed: HTTP {$response->status()} - " . $response->body());
 
-            return back()->withErrors([
+            return redirect()->route('login')->withErrors([
                 'email' => 'Invalid credentials. Please verify your email and password.'
             ])->withInput($request->only('email'));
 
-        } catch (\Exception $e) {
-            return back()->withErrors(['email' => 'Auth service unreachable: ' . $e->getMessage()])->withInput($request->only('email'));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Auth service connection error: ' . $e->getMessage());
+            return redirect()->route('login')->withErrors([
+                'email' => 'Unable to connect to authentication service. Please try again later.'
+            ])->withInput($request->only('email'));
         }
     }
 
