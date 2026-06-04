@@ -30,7 +30,7 @@ class VerifyJwtFromAuthService
             $response = Http::withHeaders([
                 'Authorization' => $authHeader,
                 'Accept' => 'application/json',
-            ])->timeout(5)->get(env('AUTH_SERVICE_URL', 'https://localhost:8001') . '/api/v1/auth/me');
+            ])->timeout(30)->get(env('AUTH_SERVICE_URL', 'https://localhost:8001') . '/api/v1/auth/me');
 
             if ($response->successful()) {
                 $userData = $response->json('user');

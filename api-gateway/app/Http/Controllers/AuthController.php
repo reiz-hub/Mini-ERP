@@ -34,7 +34,7 @@ class AuthController extends Controller
         try {
             $response = Http::withHeaders([
                 'Accept' => 'application/json',
-            ])->withoutVerifying()->timeout(15)->post("{$authUrl}/api/v1/auth/login", [
+            ])->withoutVerifying()->timeout(30)->post("{$authUrl}/api/v1/auth/login", [
                 'email'    => $request->email,
                 'password' => $request->password,
             ]);
