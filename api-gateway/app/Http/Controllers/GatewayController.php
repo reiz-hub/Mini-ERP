@@ -39,7 +39,7 @@ class GatewayController extends Controller
 
         // Try to fetch reporting summary
         try {
-            $repRes = Http::withHeaders($this->getHeaders())->timeout(30)->get("{$reportingUrl}/api/v1/reports/summary");
+            $repRes = Http::withHeaders($this->getHeaders())->timeout(90)->get("{$reportingUrl}/api/v1/reports/summary");
             if ($repRes->successful()) {
                 $stats = array_merge($stats, $repRes->json('data') ?? []);
             }
@@ -49,7 +49,7 @@ class GatewayController extends Controller
 
         // Try to count employees
         try {
-            $empRes = Http::withHeaders($this->getHeaders())->timeout(30)->get("{$hrUrl}/api/v1/employees");
+            $empRes = Http::withHeaders($this->getHeaders())->timeout(90)->get("{$hrUrl}/api/v1/employees");
             if ($empRes->successful()) {
                 $stats['total_employees'] = count($empRes->json('data') ?? []);
             }
@@ -59,7 +59,7 @@ class GatewayController extends Controller
 
         // Try to count plans
         try {
-            $planRes = Http::withHeaders($this->getHeaders())->timeout(30)->get("{$membershipUrl}/api/v1/plans");
+            $planRes = Http::withHeaders($this->getHeaders())->timeout(90)->get("{$membershipUrl}/api/v1/plans");
             if ($planRes->successful()) {
                 $stats['total_plans'] = count($planRes->json('data') ?? []);
             }
@@ -333,11 +333,12 @@ class GatewayController extends Controller
         $reportData = null;
 
         try {
-            $response = Http::withHeaders($this->getHeaders())->get("{$reportingUrl}/api/v1/reports/summary");
+            $response = Http::withHeaders($this->getHeaders())->timeout(90)->get("{$reportingUrl}/api/v1/reports/summary");
             if ($response->successful()) {
                 $reportData = $response->json('data');
             } else {
-                return view('reports', ['error' => 'Failed to fetch report summary: Status ' . $response->status()]);
+                $errMsg = $response->json('message') ?? 'Status ' . $response->status();
+                return view('reports', ['error' => 'Failed to fetch report summary: ' . $errMsg]);
             }
         } catch (\Exception $e) {
             return view('reports', ['error' => 'Reporting Service is unreachable: ' . $e->getMessage()]);

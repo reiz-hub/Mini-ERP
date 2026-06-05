@@ -24,7 +24,7 @@ class ReportController extends Controller
             $crmResponse = Http::withHeaders([
                 'Authorization' => $authHeader,
                 'Accept'        => 'application/json',
-            ])->timeout(30)->get(env('CRM_SERVICE_URL', 'https://fitlife-crm-service.onrender.com') . '/api/v1/members');
+            ])->timeout(90)->get(env('CRM_SERVICE_URL', 'https://fitlife-crm-service.onrender.com') . '/api/v1/members');
 
             if (!$crmResponse->successful()) {
                 return response()->json([
@@ -44,7 +44,7 @@ class ReportController extends Controller
             $membershipsResponse = Http::withHeaders([
                 'Authorization' => $authHeader,
                 'Accept'        => 'application/json',
-            ])->timeout(30)->get(env('MEMBERSHIP_SERVICE_URL', 'https://fitlife-membership-service.onrender.com') . '/api/v1/memberships');
+            ])->timeout(90)->get(env('MEMBERSHIP_SERVICE_URL', 'https://fitlife-membership-service.onrender.com') . '/api/v1/memberships');
 
             if (!$membershipsResponse->successful()) {
                 return response()->json([
@@ -64,7 +64,7 @@ class ReportController extends Controller
             $expiringResponse = Http::withHeaders([
                 'Authorization' => $authHeader,
                 'Accept'        => 'application/json',
-            ])->timeout(30)->get(env('MEMBERSHIP_SERVICE_URL', 'https://fitlife-membership-service.onrender.com') . '/api/v1/memberships/expiring');
+            ])->timeout(90)->get(env('MEMBERSHIP_SERVICE_URL', 'https://fitlife-membership-service.onrender.com') . '/api/v1/memberships/expiring');
 
             if (!$expiringResponse->successful()) {
                 return response()->json([
