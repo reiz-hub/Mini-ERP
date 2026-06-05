@@ -29,7 +29,7 @@
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <h6 class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.75rem;">Revenue (Month)</h6>
-                    <h3 class="mb-0 fw-bold">${{ number_format($stats['total_revenue_this_month'], 2) }}</h3>
+                    <h3 class="mb-0 fw-bold">₱{{ number_format($stats['total_revenue_this_month'], 2) }}</h3>
                 </div>
                 <div class="bg-success bg-opacity-10 p-3 rounded-3 text-success">
                     <i class="bi bi-currency-dollar fs-4"></i>

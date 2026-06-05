@@ -21,7 +21,7 @@
                     <input type="number" name="duration_months" id="duration_months" class="form-control" min="1" placeholder="e.g. 1" required>
                 </div>
                 <div class="mb-3">
-                    <label for="price" class="form-label small text-muted fw-bold text-uppercase">Price ($)</label>
+                    <label for="price" class="form-label small text-muted fw-bold text-uppercase">Price (₱)</label>
                     <input type="number" step="0.01" name="price" id="price" class="form-control" min="0" placeholder="e.g. 49.99" required>
                 </div>
                 <div class="mb-3">
@@ -61,7 +61,7 @@
                         <option value="">-- Choose Plan --</option>
                         @foreach ($plans as $p)
                             @if (($p['status'] ?? 'active') === 'active')
-                                <option value="{{ $p['id'] }}" data-price="{{ $p['price'] }}">{{ $p['name'] }} - ${{ $p['price'] }} ({{ $p['duration_months'] }} mo)</option>
+                                <option value="{{ $p['id'] }}" data-price="{{ $p['price'] }}">{{ $p['name'] }} - ₱{{ $p['price'] }} ({{ $p['duration_months'] }} mo)</option>
                             @endif
                         @endforeach
                     </select>
@@ -71,7 +71,7 @@
                     <input type="date" name="start_date" id="start_date" class="form-control" value="{{ date('Y-m-d') }}" required>
                 </div>
                 <div class="mb-3">
-                    <label for="amount_paid" class="form-label small text-muted fw-bold text-uppercase">Amount Paid ($)</label>
+                    <label for="amount_paid" class="form-label small text-muted fw-bold text-uppercase">Amount Paid (₱)</label>
                     <input type="number" step="0.01" name="amount_paid" id="amount_paid" class="form-control" min="0" placeholder="0.00" required>
                 </div>
                 <button type="submit" class="btn btn-indigo w-100">Enroll Member</button>
@@ -91,7 +91,7 @@
                         <div class="list-group-item border-0 p-3 bg-light rounded-3 mb-2">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div class="fw-bold text-dark">{{ $p['name'] }}</div>
-                                <span class="badge bg-indigo">${{ number_format($p['price'], 2) }}</span>
+                                <span class="badge bg-indigo">₱{{ number_format($p['price'], 2) }}</span>
                             </div>
                             <div class="small text-muted mt-1">
                                 Duration: {{ $p['duration_months'] }} Month(s) | Status:
@@ -155,7 +155,7 @@
                                 <div class="small"><span class="text-muted">To:</span> {{ $m['end_date'] }}</div>
                             </td>
                             <td>
-                                <div class="fw-semibold text-dark">${{ number_format($m['amount_paid'], 2) }}</div>
+                                <div class="fw-semibold text-dark">₱{{ number_format($m['amount_paid'], 2) }}</div>
                             </td>
                             <td>
                                 <span class="badge badge-{{ $m['status'] }} rounded-pill px-2.5 py-1 text-uppercase">
@@ -166,7 +166,7 @@
                                 <form action="{{ route('memberships.renew', $m['id']) }}" method="POST" class="d-flex gap-2 align-items-center mb-0">
                                     @csrf
                                     <div class="input-group input-group-sm">
-                                        <span class="input-group-text">$</span>
+                                        <span class="input-group-text">₱</span>
                                         <input type="number" step="0.01" name="amount_paid" class="form-control" placeholder="{{ $m['plan']['price'] ?? '0.00' }}" style="max-width: 90px;" required>
                                     </div>
                                     <button type="submit" class="btn btn-outline-success btn-sm rounded-pill px-3 text-nowrap">
