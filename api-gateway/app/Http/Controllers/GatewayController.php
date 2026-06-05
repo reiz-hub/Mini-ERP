@@ -22,10 +22,10 @@ class GatewayController extends Controller
      */
     public function dashboard()
     {
-        $reportingUrl = env('REPORTING_SERVICE_URL', 'http://localhost:8005');
-        $crmUrl = env('CRM_SERVICE_URL', 'http://localhost:8002');
-        $hrUrl = env('HR_SERVICE_URL', 'http://localhost:8004');
-        $membershipUrl = env('MEMBERSHIP_SERVICE_URL', 'http://localhost:8003');
+        $reportingUrl = env('REPORTING_SERVICE_URL', 'https://fitlife-reporting-service.onrender.com');
+        $crmUrl = env('CRM_SERVICE_URL', 'https://fitlife-crm-service.onrender.com');
+        $hrUrl = env('HR_SERVICE_URL', 'https://fitlife-hr-service.onrender.com');
+        $membershipUrl = env('MEMBERSHIP_SERVICE_URL', 'https://fitlife-membership-service.onrender.com');
 
         $stats = [
             'total_active_members'     => 0,
@@ -75,7 +75,7 @@ class GatewayController extends Controller
      */
     public function members(Request $request)
     {
-        $crmUrl = env('CRM_SERVICE_URL', 'http://localhost:8002');
+        $crmUrl = env('CRM_SERVICE_URL', 'https://fitlife-crm-service.onrender.com');
         $members = [];
         $editMember = null;
 
@@ -104,7 +104,7 @@ class GatewayController extends Controller
 
     public function createMember(Request $request)
     {
-        $crmUrl = env('CRM_SERVICE_URL', 'http://localhost:8002');
+        $crmUrl = env('CRM_SERVICE_URL', 'https://fitlife-crm-service.onrender.com');
         
         try {
             $response = Http::withHeaders($this->getHeaders())->post("{$crmUrl}/api/v1/members", $request->all());
@@ -122,7 +122,7 @@ class GatewayController extends Controller
 
     public function updateMember(Request $request, $id)
     {
-        $crmUrl = env('CRM_SERVICE_URL', 'http://localhost:8002');
+        $crmUrl = env('CRM_SERVICE_URL', 'https://fitlife-crm-service.onrender.com');
 
         try {
             $response = Http::withHeaders($this->getHeaders())->put("{$crmUrl}/api/v1/members/{$id}", $request->all());
@@ -140,7 +140,7 @@ class GatewayController extends Controller
 
     public function deleteMember($id)
     {
-        $crmUrl = env('CRM_SERVICE_URL', 'http://localhost:8002');
+        $crmUrl = env('CRM_SERVICE_URL', 'https://fitlife-crm-service.onrender.com');
 
         try {
             $response = Http::withHeaders($this->getHeaders())->delete("{$crmUrl}/api/v1/members/{$id}");
@@ -160,8 +160,8 @@ class GatewayController extends Controller
      */
     public function memberships()
     {
-        $crmUrl = env('CRM_SERVICE_URL', 'http://localhost:8002');
-        $membershipUrl = env('MEMBERSHIP_SERVICE_URL', 'http://localhost:8003');
+        $crmUrl = env('CRM_SERVICE_URL', 'https://fitlife-crm-service.onrender.com');
+        $membershipUrl = env('MEMBERSHIP_SERVICE_URL', 'https://fitlife-membership-service.onrender.com');
 
         $members = [];
         $plans = [];
@@ -197,7 +197,7 @@ class GatewayController extends Controller
 
     public function createPlan(Request $request)
     {
-        $membershipUrl = env('MEMBERSHIP_SERVICE_URL', 'http://localhost:8003');
+        $membershipUrl = env('MEMBERSHIP_SERVICE_URL', 'https://fitlife-membership-service.onrender.com');
 
         try {
             $response = Http::withHeaders($this->getHeaders())->post("{$membershipUrl}/api/v1/plans", $request->all());
@@ -215,7 +215,7 @@ class GatewayController extends Controller
 
     public function enroll(Request $request)
     {
-        $membershipUrl = env('MEMBERSHIP_SERVICE_URL', 'http://localhost:8003');
+        $membershipUrl = env('MEMBERSHIP_SERVICE_URL', 'https://fitlife-membership-service.onrender.com');
 
         try {
             $response = Http::withHeaders($this->getHeaders())->post("{$membershipUrl}/api/v1/memberships/enroll", $request->all());
@@ -233,7 +233,7 @@ class GatewayController extends Controller
 
     public function renew(Request $request, $id)
     {
-        $membershipUrl = env('MEMBERSHIP_SERVICE_URL', 'http://localhost:8003');
+        $membershipUrl = env('MEMBERSHIP_SERVICE_URL', 'https://fitlife-membership-service.onrender.com');
 
         try {
             $response = Http::withHeaders($this->getHeaders())->put("{$membershipUrl}/api/v1/memberships/{$id}/renew", $request->all());
@@ -253,8 +253,8 @@ class GatewayController extends Controller
      */
     public function employees()
     {
-        $hrUrl = env('HR_SERVICE_URL', 'http://localhost:8004');
-        $crmUrl = env('CRM_SERVICE_URL', 'http://localhost:8002');
+        $hrUrl = env('HR_SERVICE_URL', 'https://fitlife-hr-service.onrender.com');
+        $crmUrl = env('CRM_SERVICE_URL', 'https://fitlife-crm-service.onrender.com');
 
         $employees = [];
         $assignments = [];
@@ -290,7 +290,7 @@ class GatewayController extends Controller
 
     public function createEmployee(Request $request)
     {
-        $hrUrl = env('HR_SERVICE_URL', 'http://localhost:8004');
+        $hrUrl = env('HR_SERVICE_URL', 'https://fitlife-hr-service.onrender.com');
 
         try {
             $response = Http::withHeaders($this->getHeaders())->post("{$hrUrl}/api/v1/employees", $request->all());
@@ -308,7 +308,7 @@ class GatewayController extends Controller
 
     public function assignTrainer(Request $request)
     {
-        $hrUrl = env('HR_SERVICE_URL', 'http://localhost:8004');
+        $hrUrl = env('HR_SERVICE_URL', 'https://fitlife-hr-service.onrender.com');
 
         try {
             $response = Http::withHeaders($this->getHeaders())->post("{$hrUrl}/api/v1/assignments", $request->all());
@@ -329,7 +329,7 @@ class GatewayController extends Controller
      */
     public function reports()
     {
-        $reportingUrl = env('REPORTING_SERVICE_URL', 'http://localhost:8005');
+        $reportingUrl = env('REPORTING_SERVICE_URL', 'https://fitlife-reporting-service.onrender.com');
         $reportData = null;
 
         try {
