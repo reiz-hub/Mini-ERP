@@ -19,3 +19,8 @@ Route::prefix('v1')->middleware('auth.jwt')->group(function () {
     Route::put('/assignments/{id}', [TrainerAssignmentController::class, 'update']);
     Route::delete('/assignments/{id}', [TrainerAssignmentController::class, 'destroy']);
 });
+
+// Health check (public, no auth required)
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok', 'service' => 'hr-service']);
+});

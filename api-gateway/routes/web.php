@@ -35,3 +35,8 @@ Route::middleware('auth.jwt.session')->group(function () {
     // Reports Summary
     Route::get('/reports', [GatewayController::class, 'reports'])->name('reports');
 });
+
+// Health check (public, no auth required)
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok', 'service' => 'api-gateway']);
+});

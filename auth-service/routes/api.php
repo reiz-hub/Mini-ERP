@@ -14,3 +14,8 @@ Route::prefix('v1/auth')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
     });
 });
+
+// Health check (public, no auth required)
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok', 'service' => 'auth-service']);
+});

@@ -10,3 +10,8 @@ Route::prefix('v1')->middleware('auth.jwt')->group(function () {
     Route::put('/members/{id}', [MemberController::class, 'update']);
     Route::delete('/members/{id}', [MemberController::class, 'destroy']);
 });
+
+// Health check (public, no auth required)
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok', 'service' => 'crm-service']);
+});

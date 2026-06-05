@@ -18,3 +18,8 @@ Route::prefix('v1')->middleware('auth.jwt')->group(function () {
     Route::put('/memberships/{id}/renew', [MembershipController::class, 'renew']);
     Route::get('/memberships/expiring', [MembershipController::class, 'expiring']);
 });
+
+// Health check (public, no auth required)
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok', 'service' => 'membership-service']);
+});

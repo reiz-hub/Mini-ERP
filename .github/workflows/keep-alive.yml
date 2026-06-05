@@ -1,0 +1,35 @@
+name: Keep Render Services Alive
+
+on:
+  schedule:
+    # Run every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  ping-services:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API Gateway
+        run: |
+          curl -fsS --max-time 120 "https://fitlife-api-gateway.onrender.com/health" || echo "API Gateway wake-up ping sent"
+
+      - name: Ping Auth Service
+        run: |
+          curl -fsS --max-time 120 "https://fitlife-auth-service-iog2.onrender.com/api/health" || echo "Auth Service wake-up ping sent"
+
+      - name: Ping CRM Service
+        run: |
+          curl -fsS --max-time 120 "https://fitlife-crm-service.onrender.com/api/health" || echo "CRM Service wake-up ping sent"
+
+      - name: Ping HR Service
+        run: |
+          curl -fsS --max-time 120 "https://fitlife-hr-service.onrender.com/api/health" || echo "HR Service wake-up ping sent"
+
+      - name: Ping Membership Service
+        run: |
+          curl -fsS --max-time 120 "https://fitlife-membership-service.onrender.com/api/health" || echo "Membership Service wake-up ping sent"
+
+      - name: Ping Reporting Service
+        run: |
+          curl -fsS --max-time 120 "https://fitlife-reporting-service.onrender.com/api/health" || echo "Reporting Service wake-up ping sent"
