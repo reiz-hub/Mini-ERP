@@ -39,7 +39,7 @@ class GatewayController extends Controller
 
         // Try to fetch reporting summary
         try {
-            $repRes = Http::withHeaders($this->getHeaders())->timeout(3)->get("{$reportingUrl}/api/v1/reports/summary");
+            $repRes = Http::withHeaders($this->getHeaders())->timeout(30)->get("{$reportingUrl}/api/v1/reports/summary");
             if ($repRes->successful()) {
                 $stats = array_merge($stats, $repRes->json('data') ?? []);
             }
@@ -49,7 +49,7 @@ class GatewayController extends Controller
 
         // Try to count employees
         try {
-            $empRes = Http::withHeaders($this->getHeaders())->timeout(3)->get("{$hrUrl}/api/v1/employees");
+            $empRes = Http::withHeaders($this->getHeaders())->timeout(30)->get("{$hrUrl}/api/v1/employees");
             if ($empRes->successful()) {
                 $stats['total_employees'] = count($empRes->json('data') ?? []);
             }
@@ -59,7 +59,7 @@ class GatewayController extends Controller
 
         // Try to count plans
         try {
-            $planRes = Http::withHeaders($this->getHeaders())->timeout(3)->get("{$membershipUrl}/api/v1/plans");
+            $planRes = Http::withHeaders($this->getHeaders())->timeout(30)->get("{$membershipUrl}/api/v1/plans");
             if ($planRes->successful()) {
                 $stats['total_plans'] = count($planRes->json('data') ?? []);
             }
